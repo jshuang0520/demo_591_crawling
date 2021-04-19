@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from bs4 import BeautifulSoup
 import json
+import multiprocessing
 import pprint
 import random
 import re
@@ -8,6 +9,7 @@ import requests
 import sys
 from src.constants.crawler_constant import UserAgentConst
 from src.utility.utils import Logger
+import time
 
 
 pp = pprint.PrettyPrinter(indent=2)
@@ -69,29 +71,40 @@ class Crawling:
 
             # craw the detailed information e.g. cell phone, do etl to retrieve columns
             data = data['data']['data']  # list of dict
-            for i in range(0, len(data)):
-                detail_info = self.craw_detailed(post_id=data[i]['post_id'])
-                res = {'nick_name': data[i]['nick_name']}
-                data[i] = {**res, **detail_info}  # merge multiple dictionaries to replace the original dict data
-
+            # # # single process
+            # for i in range(0, len(data)):
+            #     detail_info = self.craw_detailed(post_id=data[i]['post_id'])
+            #     res = {'nick_name': data[i]['nick_name']}
+            #     data[i] = {**res, **detail_info}  # merge multiple dictionaries to replace the original dict data
+            # # multi process
+            post_id_list = [x['post_id'] for x in data]
+            print('post_id_list:', post_id_list)
+            with multiprocessing.Pool(processes=5) as pool:
+                results = pool.starmap(Crawling(self.logger).craw_detailed, zip(data, post_id_list))
+                pool.close()
+                pool.join()
+                time.sleep(0.5)
+            print('results:', results)
+            # exit()
+            print('len(data):', len(data))
             return_dict = {'data': data,
-                           'total': total_num,  # FIXME: add total
+                           'total': total_num,
                            'status': 1}
             self.logger.info("return_dict['data'][0]: {}".format(return_dict['data'][0]))
 
         except Exception as e:
             self.logger.error(e)
             return_dict = {'data': None,
-                           'total': None,  # FIXME: add total
-                           'status': -1}  # FIXME: alter it from 0 to -1
+                           'total': None,
+                           'status': -1}
         return return_dict
 
-    def craw_detailed(self, post_id):
+    def craw_detailed(self, basic_data, post_id):
         url = 'https://rent.591.com.tw/rent-detail-{post_id}.html'.format(post_id=post_id)
-        res = requests.Session()  # set resuest session
+        # res = requests.Session()  # set resuest session
         user_agent = random.choice(self.user_agent_list)  # choose a user_agent randomly
         headers1 = {'User-Agent': user_agent}
-        resp = res.get(url, headers=headers1)
+        resp = requests.get(url, headers=headers1)
         soup = BeautifulSoup(resp.text, 'lxml')
 
         # detailInfo clearfix
@@ -110,7 +123,7 @@ class Crawling:
         # userInfo
         user_info = soup.find('div', {'class': 'userInfo'})
         # print('user_info:', user_info.find('div', {'style': 'margin-top: 13px;'}).text)
-        phone = user_info.find('span', {'class': 'dialPhoneNum'})['data-value']
+        phone = user_info.find('span', {'class': 'dialPhoneNum'})['data-value']  # FIXME: find an exception- https://rent.591.com.tw/rent-detail-10780065.html
 
         res = {'lot_size': lot_size,
                'story': story,
@@ -120,7 +133,40 @@ class Crawling:
                'phone': phone,
                }
 
-        return res
+        nick_name = basic_data['nick_name']
+        owner_id_info = [x.strip() for x in nick_name.split(' ')]
+        if len(owner_id_info) > 1:
+            owner_identity = owner_id_info[0]
+            owner_last_name = self.lastname_gender(owner_id_info[1])[0]
+            owner_gender = self.lastname_gender(owner_id_info[1])[1]
+        else:
+            owner_identity = owner_id_info[0]
+            owner_last_name = None
+            owner_gender = None
+        basic_data = {'post_id': basic_data['post_id'], 'nick_name': nick_name,
+                      'owner_identity': owner_identity, 'owner_last_name': owner_last_name, 'owner_gender': owner_gender,
+                      }
+        data = {**basic_data, **res}  # merge multiple dictionaries to replace the original dict data
+
+        return data
+
+    @staticmethod
+    def lastname_gender(seller):
+        try:
+            if "先生" in seller:
+                delimiters = "先生"
+                nick_name_gender_local = "男"
+                nick_name_lastName_local = re.split(delimiters, seller)[0]  # 取姓氏的部分
+            elif any(x in seller for x in ["小姐", "太太", "媽媽", "女士", "阿姨"]):
+                delimiters = "小姐|太太|媽媽|女士|阿姨"
+                nick_name_gender_local = "女"
+                nick_name_lastName_local = re.split(delimiters, seller)[0]  # 取姓氏的部分
+            else:
+                nick_name_lastName_local = seller
+                nick_name_gender_local = None  # "未顯示"
+            return nick_name_lastName_local, nick_name_gender_local
+        except Exception as e:
+            print(e)
 
 
 # FIXME: if we don't comment out the 'main' function, other codes import this will execute this loop below

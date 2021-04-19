@@ -96,44 +96,95 @@ global_logger = Logger().get_logger('crawling')
 taipei_total_num = Crawling(global_logger).craw(city='taipei_city')['total']
 global_logger.info('total number: {}'.format(taipei_total_num))
 
-# # print(list(zip(taipei_city*, range(0, 10, 3))))
-# print(len(range(0, 10, 3)), list(range(0, 10, 3)))
-# print(['taipei_city'] * len(range(0, 10, 3)))
+# # # print(list(zip(taipei_city*, range(0, 10, 3))))
+# # print(len(range(0, 10, 3)), list(range(0, 10, 3)))
+# # print(['taipei_city'] * len(range(0, 10, 3)))
+#
+# """
+# How to use multiprocessing pool.map with multiple arguments?
+# https://stackoverflow.com/questions/5442910/how-to-use-multiprocessing-pool-map-with-multiple-arguments
+# """
+# start = time.time()
+# # rng = range(0, taipei_total_num, 30)
+# rng = range(0, 100, 30)
+# print('list(rng):', list(rng))
+# with multiprocessing.Pool(processes=3) as pool:
+#     results = pool.starmap(Crawling(global_logger).craw, zip(['taipei_city']*len(rng), rng))
+#     pool.close()
+#     pool.join()
+# end = time.time()
+# print('time elapsed:', end - start)
+# # print(results)
+#
+# # final_res = list()
+# # for res in results:
+# #     for r in res['data']:
+# #         final_res.append(r['id'])
+# # final_res = sorted(final_res)
+# # print("final_res:", final_res, len(final_res))
+# # list_set_final_res = sorted(list(set(final_res)))
+# # print("list(set(final_res)):", list_set_final_res, len(list_set_final_res))
+#
+# # import collections
+# # print([item for item, count in collections.Counter(final_res).items() if count > 1])
+#
+#
+#
+# # # create
+# #     # mongodb_client.create(conn_db=db_conn, coll_name='my_collection', data_to_insert=[{"item": 1}])
+# #     # mongodb_client.create(conn_db=db_conn, coll_name='my_collection', data_to_insert=[{"item": 2}])
+# #     # mongodb_client.create(conn_db=db_conn, coll_name='my_collection', data_to_insert=[{"item": 3}])
+# #     # mongodb_client.create(conn_db=db_conn, coll_name='my_collection', data_to_insert=[{"item": 4}])
+# #     # mongodb_client.create(conn_db=db_conn, coll_name='my_collection', data_to_insert=[{"item": 5}])
+# #     #
+# #     # print(1)
+# #     #
+# #     # # read
+# #     # data = mongodb_client.read(conn_db=db_conn, coll_name='my_collection',
+# #     #                            query_criteria={'item': {'$gte': 3}}, projection={'item': 'journal'})
+# #     # data = data['data']
+# #     # print('read data:', data)
 
-start = time.time()
-# rng = range(0, taipei_total_num, 30)
-rng = range(0, 100, 30)
-with multiprocessing.Pool(processes=3) as pool:
+
+"""
+reference
+
+Python Process Pool non-daemonic?
+https://stackoverflow.com/questions/6974695/python-process-pool-non-daemonic
+"""
+
+
+class NoDaemonProcess(multiprocessing.Process):
+    # make 'daemon' attribute always return False
+    def _get_daemon(self):
+        return False
+
+    def _set_daemon(self, value):
+        pass
+
+    daemon = property(_get_daemon, _set_daemon)
+
+
+# We sub-class multiprocessing.pool.Pool instead of multiprocessing.Pool
+# because the latter is only a wrapper function, not a proper class.
+
+
+class MyPool(multiprocessing.pool.Pool):
+    Process = NoDaemonProcess
+
+
+def main():
+    start = time.time()
+    # rng = range(0, taipei_total_num, 30)
+    rng = range(0, 100, 30)
+    print('list(rng):', list(rng))
+    pool = MyPool(5)
     results = pool.starmap(Crawling(global_logger).craw, zip(['taipei_city']*len(rng), rng))
-end = time.time()
-print('time elapsed:', end - start)
-# print(results)
-
-# final_res = list()
-# for res in results:
-#     for r in res['data']:
-#         final_res.append(r['id'])
-# final_res = sorted(final_res)
-# print("final_res:", final_res, len(final_res))
-# list_set_final_res = sorted(list(set(final_res)))
-# print("list(set(final_res)):", list_set_final_res, len(list_set_final_res))
-
-# import collections
-# print([item for item, count in collections.Counter(final_res).items() if count > 1])
+    pool.close()
+    pool.join()
+    end = time.time()
+    print('time elapsed:', end - start)
+    # print(results)
 
 
-
-# # create
-#     # mongodb_client.create(conn_db=db_conn, coll_name='my_collection', data_to_insert=[{"item": 1}])
-#     # mongodb_client.create(conn_db=db_conn, coll_name='my_collection', data_to_insert=[{"item": 2}])
-#     # mongodb_client.create(conn_db=db_conn, coll_name='my_collection', data_to_insert=[{"item": 3}])
-#     # mongodb_client.create(conn_db=db_conn, coll_name='my_collection', data_to_insert=[{"item": 4}])
-#     # mongodb_client.create(conn_db=db_conn, coll_name='my_collection', data_to_insert=[{"item": 5}])
-#     #
-#     # print(1)
-#     #
-#     # # read
-#     # data = mongodb_client.read(conn_db=db_conn, coll_name='my_collection',
-#     #                            query_criteria={'item': {'$gte': 3}}, projection={'item': 'journal'})
-#     # data = data['data']
-#     # print('read data:', data)
+main()

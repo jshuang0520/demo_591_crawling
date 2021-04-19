@@ -259,7 +259,7 @@ taipei_total_num = Crawling(global_logger).craw(city='taipei_city')['total']
 
 start = time.time()
 # rng = range(0, taipei_total_num, 30)
-rng = range(0, 100, 30)
+rng = range(0, 70, 30)
 with multiprocessing.Pool(processes=3) as pool:
     results = pool.starmap(Crawling(global_logger).craw, zip(['taipei_city']*len(rng), rng))
 end = time.time()
@@ -277,3 +277,16 @@ print('time elapsed:', end - start)
 
 # import collections
 # print([item for item, count in collections.Counter(final_res).items() if count > 1])
+
+
+# ================================================================================================================
+
+
+def run():
+    def f(x):
+        return x*x
+    p = Pool()
+    return p.map(f, [1, 2, 3])
+
+
+run()
