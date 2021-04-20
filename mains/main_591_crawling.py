@@ -93,7 +93,7 @@ pp = pprint.PrettyPrinter(indent=2)
 global_logger = Logger().get_logger('crawling')
 
 
-taipei_total_num = Crawling(global_logger).craw(city='taipei_city')['total']
+taipei_total_num = Crawling(global_logger).craw(city='taipei_city')['total']  # FIXME: total number encountered an error after multiprocess
 global_logger.info('total number: {}'.format(taipei_total_num))
 
 # # # print(list(zip(taipei_city*, range(0, 10, 3))))
