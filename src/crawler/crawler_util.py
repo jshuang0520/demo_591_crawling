@@ -33,6 +33,10 @@ class Crawling:
         """
         reference: https://ithelp.ithome.com.tw/articles/10191506
         """
+        # FIXME: Error: 'RecursionError('maximum recursion depth exceeded')'
+        sleep_time = random.randint(2, 7)
+        time.sleep(sleep_time)
+
         city = str(city).lower()
         if city == 'taipei_city':
             urlJumpIp, region = 1, 1
@@ -100,6 +104,9 @@ class Crawling:
         return return_dict
 
     def craw_detailed(self, basic_data, post_id):
+        # FIXME: Error: 'RecursionError('maximum recursion depth exceeded')'
+        sleep_time = random.uniform(0.5, 3)  # random.uniform(0.5, 3)   random.randint(1, 3)
+        time.sleep(sleep_time)
         # post_id = 10789981  # TODO: test case - there's no gender request
         url = 'https://rent.591.com.tw/rent-detail-{post_id}.html'.format(post_id=post_id)
         # res = requests.Session()  # set resuest session
@@ -120,7 +127,7 @@ class Crawling:
         for x in gender_request_info:
             if '性別要求' in x.text:
                 gender_request = x.text.split('性別要求：')[-1]
-        print('gender_request:', gender_request)
+        # print('gender_request:', gender_request)
 
         # detailInfo clearfix
         detail_info = soup.find('div', {'class': 'detailInfo clearfix'}).find('ul', {'class': 'attr'}).findAll('li')
