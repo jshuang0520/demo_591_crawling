@@ -78,7 +78,7 @@ class Crawling:
             #     data[i] = {**res, **detail_info}  # merge multiple dictionaries to replace the original dict data
             # # multi process
             post_id_list = [x['post_id'] for x in data]
-            print('post_id_list:', post_id_list)
+            # print('post_id_list:', post_id_list)
             with multiprocessing.Pool(processes=5) as pool:
                 results = pool.starmap(Crawling(self.logger).craw_detailed, zip(data, post_id_list))
                 pool.close()
@@ -100,12 +100,27 @@ class Crawling:
         return return_dict
 
     def craw_detailed(self, basic_data, post_id):
+        # post_id = 10789981  # TODO: test case - there's no gender request
         url = 'https://rent.591.com.tw/rent-detail-{post_id}.html'.format(post_id=post_id)
         # res = requests.Session()  # set resuest session
         user_agent = random.choice(self.user_agent_list)  # choose a user_agent randomly
         headers1 = {'User-Agent': user_agent}
         resp = requests.get(url, headers=headers1)
         soup = BeautifulSoup(resp.text, 'lxml')
+
+        # city
+        city_info = soup.find('div', {'id': 'main'}).find('div', {'id': 'propNav'}).findAll('a')[2]  # FIXME: too roughly
+
+        # gender request
+        gender_request_info = soup.find('div', {'class': 'detailBox clearfix'}) \
+            .find('div', {'class': 'leftBox'}) \
+            .find('ul', {'class': 'clearfix labelList labelList-1'})\
+            .findAll('li', {'class': 'clearfix'})
+        gender_request = None
+        for x in gender_request_info:
+            if '性別要求' in x.text:
+                gender_request = x.text.split('性別要求：')[-1]
+        print('gender_request:', gender_request)
 
         # detailInfo clearfix
         detail_info = soup.find('div', {'class': 'detailInfo clearfix'}).find('ul', {'class': 'attr'}).findAll('li')
@@ -137,13 +152,16 @@ class Crawling:
         owner_id_info = [x.strip() for x in nick_name.split(' ')]
         if len(owner_id_info) > 1:
             owner_identity = owner_id_info[0]
+            renter = owner_id_info[1]
             owner_last_name = self.lastname_gender(owner_id_info[1])[0]
             owner_gender = self.lastname_gender(owner_id_info[1])[1]
         else:
             owner_identity = owner_id_info[0]
+            renter = None
             owner_last_name = None
             owner_gender = None
-        basic_data = {'post_id': basic_data['post_id'], 'nick_name': nick_name,
+        basic_data = {'post_id': basic_data['post_id'], 'city': city_info,
+                      'nick_name': nick_name, 'renter': renter,
                       'owner_identity': owner_identity, 'owner_last_name': owner_last_name, 'owner_gender': owner_gender,
                       }
         data = {**basic_data, **res}  # merge multiple dictionaries to replace the original dict data
