@@ -133,13 +133,6 @@ class MongodbUtility:
         # TODO
         pass
 
-    def update(self):
-        """
-        batch update
-        """
-        # TODO
-    pass
-
     def create(self, conn_db, coll_name, data_to_insert: List[dict]):
         """
         param: conn_db: db connection
@@ -197,6 +190,17 @@ class MongodbUtility:
         self.logger.info('{func} - status: {status}'.format(func=inspect.getframeinfo(inspect.currentframe()).function,
                                                             status=output['status']))
         return output
+
+    def update(self):
+        """
+        batch update
+
+        param: conn_db: db connection
+        param: coll: collection name
+        param: data_to_insert: <list of dictionary> data_to_insert to be inserted
+        """
+        # TODO
+        pass  # FIXME: there's a update below
 
     def update(self, conn_db, coll_name, update_filter=None, update_action=None):
         """
