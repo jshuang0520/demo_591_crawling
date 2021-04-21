@@ -87,14 +87,16 @@ import pprint
 from src.crawler.crawler_util import Crawling
 from src.utility.utils import Logger
 import time
+import multiprocessing.pool
 
 
 pp = pprint.PrettyPrinter(indent=2)
 global_logger = Logger().get_logger('crawling')
 
 
-taipei_total_num = Crawling(global_logger).craw(city='taipei_city')['total']  # FIXME: total number encountered an error after multiprocess
+taipei_total_num = Crawling(global_logger).craw_layer_1(city='taipei_city', fist_row=0, get_total=True)['total']  # FIXME: total number encountered an error after multiprocess
 global_logger.info('total number: {}'.format(taipei_total_num))
+
 
 # # # print(list(zip(taipei_city*, range(0, 10, 3))))
 # # print(len(range(0, 10, 3)), list(range(0, 10, 3)))
@@ -173,18 +175,68 @@ class MyPool(multiprocessing.pool.Pool):
     Process = NoDaemonProcess
 
 
-def main():
+def main(city):
+    ########################################################################################################
+    # layer 1
     start = time.time()
     # rng = range(0, taipei_total_num, 30)
-    rng = range(0, 100, 30)
+    rng = range(0, 105, 30)
     print('list(rng):', list(rng))
     pool = MyPool(5)
-    results = pool.starmap(Crawling(global_logger).craw, zip(['taipei_city']*len(rng), rng))
+    results = pool.starmap(Crawling(global_logger).craw_layer_1, zip([city]*len(rng), rng, [False]*len(rng)))
     pool.close()
     pool.join()
+
+    results_1 = []
+    for res in results:
+        results_1.extend(res['data'])
     end = time.time()
-    print('time elapsed:', end - start)
-    # print(results)
+
+    global_logger.info('results_1[0:10]: {results}; length of results_1: {l}'.format(results=results_1[0:10], l=len(results_1)))
+
+    cnt = 0
+    for res in results:
+        cnt += len(res['data'])
+    print('cnt:', cnt)
+
+    print('time elapsed layer 1:', end - start)
+
+    # return results
+
+    ########################################################################################################
+    # layer 2
+    start = time.time()
+
+    # multi process
+    pool = MyPool(4)  # TODO - result of trials: pool <=4 to solve Error: 'RecursionError('maximum recursion depth exceeded')'
+    results_2 = pool.map(Crawling(global_logger).craw_layer_2, results_1)  # input layer 1 result
+    pool.close()
+    pool.join()
+
+    # # single process
+    # results_2 = list()
+    # for res_1 in results_1:
+    #     results_2.append(Crawling(global_logger).craw_layer_2(basic_data=res_1))
+
+    end = time.time()
+
+    global_logger.info('results_2[0:10]: {results}; length of results_2: {l}'.format(results=results_2[0:10], l=len(results_2)))
+
+    # print('time elapsed layer 2:', end - start)
+    global_logger.info('time elapsed layer 2: {t}'.format(t=end-start))
+
+    # global_logger.info('results_1[0:10]: {results}; length of results_1: {l}'.format(results=results_1[0:10], l=len(results_1)))
+    cnt = 0
+    for res in results:
+        cnt += len(res['data'])
+    print('cnt:', cnt)
+
+    print('time elapsed layer 2:', end - start)
+    return results_2
 
 
-main()
+taipei_data = main(city='taipei_city')
+new_taipei_data = main(city='new_taipei_city')
+
+print('type(taipei_data), len(taipei_data):', type(taipei_data), len(taipei_data), taipei_data[0:10], type(taipei_data[0]))
+print('type(new_taipei_data), len(new_taipei_data):', type(new_taipei_data), len(new_taipei_data), new_taipei_data[0:10], type(new_taipei_data[0]))
