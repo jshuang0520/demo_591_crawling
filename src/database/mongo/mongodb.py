@@ -3,6 +3,8 @@ from bson.json_util import dumps
 import inspect
 import pprint
 import pymongo
+from pymongo import InsertOne, DeleteOne, ReplaceOne
+from pymongo.errors import BulkWriteError
 from src.constants.config_constant import ConfigConstant
 from typing import List
 
@@ -129,9 +131,27 @@ class MongodbUtility:
         self.logger.info('status: {}'.format(output['status']))
         return output
 
-    def create_index(self):
-        # TODO
-        pass
+    def create_index(self, conn_db, coll_name, idx_col_list):
+        """
+        create index
+        https://stackoverflow.com/questions/50301130/how-we-can-create-an-index-on-mongodb
+        https://docs.mongodb.com/manual/indexes/#index-types
+        --
+        e.g.
+        conn_db[coll_name].create_index([("post_id", pymongo.ASCENDING), ("city", pymongo.ASCENDING)])
+        """
+        try:
+            if idx_col_list:
+                conn_db[coll_name].create_index([(idx, pymongo.ASCENDING) for idx in idx_col_list])
+            else:
+                self.logger.warning('There are no column names as inputs.')
+            output = {'status': int(1)}
+        except Exception as e:
+            self.logger.error(e)
+            output = {'status': int(-1)}
+        self.logger.info('{func} - status: {status}'.format(func=inspect.getframeinfo(inspect.currentframe()).function,
+                                                            status=output['status']))
+        return output
 
     def create(self, conn_db, coll_name, data_to_insert: List[dict]):
         """
@@ -191,18 +211,44 @@ class MongodbUtility:
                                                             status=output['status']))
         return output
 
-    def update(self):
+    def update(self, conn_db, coll_name, data_to_insert, unique_key='post_id'):
         """
-        batch update
+        bulk / batch update
 
         param: conn_db: db connection
-        param: coll: collection name
+        param: coll_name: collection name
         param: data_to_insert: <list of dictionary> data_to_insert to be inserted
-        """
-        # TODO
-        pass  # FIXME: there's a update below
+        param: unique_key: default setting: column 'post_id', we see this column as a Primary Key
+        --
 
-    def update(self, conn_db, coll_name, update_filter=None, update_action=None):
+        bulk write
+        https://pymongo.readthedocs.io/en/stable/examples/bulk.html
+        --
+
+        e.g.
+        test_update_crawled_data = eval(
+            "[{'post_id': 3757630, 'nick_name': '代理人 王先生 hihi', 'renter': '王先生 hello'}, {'post_id': 3757631, 'nick_name': '代理人 王小姐 hihi', 'renter': '王小姐 hello'}]")
+        requests = [
+            ReplaceOne(filter={"post_id": doc["post_id"]}, replacement=doc, upsert=True) for doc in
+            test_update_crawled_data
+            # ReplaceOne({'j': 2}, {'i': 5}),
+            # InsertOne({'_id': 4}),  # Violates the unique key constraint on _id.
+            # DeleteOne({'i': 5})
+        ]
+        try:
+            conn_db.my_collection.bulk_write(requests)
+        except BulkWriteError as bwe:
+            print(bwe.details)
+        """
+        requests = [
+            ReplaceOne(filter={unique_key: doc[unique_key]}, replacement=doc, upsert=True) for doc in data_to_insert
+        ]
+        try:
+            conn_db[coll_name].bulk_write(requests)
+        except BulkWriteError as bwe:
+            self.logger.error(bwe.details)
+
+    def update_many(self, conn_db, coll_name, update_filter=None, update_action=None):
         """
         param: conn_db: db connection
         param: coll: collection name
