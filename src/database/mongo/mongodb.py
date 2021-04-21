@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from bson.json_util import dumps
 import inspect
 import pprint
 import pymongo
@@ -128,6 +129,17 @@ class MongodbUtility:
         self.logger.info('status: {}'.format(output['status']))
         return output
 
+    def create_index(self):
+        # TODO
+        pass
+
+    def update(self):
+        """
+        batch update
+        """
+        # TODO
+    pass
+
     def create(self, conn_db, coll_name, data_to_insert: List[dict]):
         """
         param: conn_db: db connection
@@ -176,7 +188,8 @@ class MongodbUtility:
                 res = conn_db[coll_name].find(query_criteria)
             else:
                 res = conn_db[coll_name].find(query_criteria, projection)
-            res = [r for r in res]
+            # use bson.json_util to turn bson 'ObjectId' into json, for jsonify api output
+            res = [eval(dumps(r)) for r in res]  # res = [r for r in res] would cause issues in api return
             output = {'status': int(1), 'data': res}
         except Exception as e:
             self.logger.error(e)
