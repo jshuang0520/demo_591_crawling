@@ -180,7 +180,7 @@ def main(city):
     # layer 1
     start = time.time()
     # rng = range(0, taipei_total_num, 30)
-    rng = range(0, 105, 30)
+    rng = range(0, 15, 30)  # TODO: testing size
     print('list(rng):', list(rng))
     pool = MyPool(5)
     results = pool.starmap(Crawling(global_logger).craw_layer_1, zip([city]*len(rng), rng, [False]*len(rng)))
@@ -236,7 +236,20 @@ def main(city):
 
 
 taipei_data = main(city='taipei_city')
-new_taipei_data = main(city='new_taipei_city')
+# new_taipei_data = main(city='new_taipei_city')
 
 print('type(taipei_data), len(taipei_data):', type(taipei_data), len(taipei_data), taipei_data[0:10], type(taipei_data[0]))
-print('type(new_taipei_data), len(new_taipei_data):', type(new_taipei_data), len(new_taipei_data), new_taipei_data[0:10], type(new_taipei_data[0]))
+# print('type(new_taipei_data), len(new_taipei_data):', type(new_taipei_data), len(new_taipei_data), new_taipei_data[0:10], type(new_taipei_data[0]))
+
+
+dir_path = os.path.dirname(os.path.realpath(__file__))
+global_config = set_env(logger=global_logger,
+                        env_file_path=dir_path.split('mains')[0] + 'env_files/dev/.env',
+                        config_folder_name='configs')
+mongodb_client = MongodbUtility(global_config, global_logger)
+db_conn = mongodb_client.db_connect(database='test')  # mongodb_client.dflt_conn_db
+mongodb_client.create(conn_db=db_conn, coll_name='my_collection', data_to_insert=taipei_data)  # taipei_data is a list of dict
+import pymongo
+client = pymongo.MongoClient(port=27017, host='localhost')
+res = client.test.mycollection.find({})
+print([x for x in res])
