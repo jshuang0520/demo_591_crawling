@@ -192,9 +192,9 @@ class Crawling:
         get total posts from data['data']['page']
         get 'post_id', 'nick_name' from data['data']['data']
         """
-        # # FIXME: Error: 'RecursionError('maximum recursion depth exceeded')'
-        # sleep_time = random.randint(1, 3)
-        # time.sleep(sleep_time)
+        # FIXME: Error: 'RecursionError('maximum recursion depth exceeded')'
+        sleep_time = random.randint(1, 3)
+        time.sleep(sleep_time)
 
         city = str(city).lower()
         if city == 'taipei_city':
@@ -262,9 +262,9 @@ class Crawling:
         try:
             post_id = basic_data['post_id']
             self.logger.info('post_id: {}'.format(post_id))
-            # # FIXME: Error: 'RecursionError('maximum recursion depth exceeded')'
-            # sleep_time = random.randint(1, 3)  # random.uniform(0.5, 3)   random.randint(1, 3)
-            # time.sleep(sleep_time)
+            # FIXME: Error: 'RecursionError('maximum recursion depth exceeded')'
+            sleep_time = random.randint(1, 3)  # random.uniform(0.5, 3)   random.randint(1, 3)
+            time.sleep(sleep_time)
             # # post_id = 10789981  # TODO: test case - there's no gender request
             url = 'https://rent.591.com.tw/rent-detail-{post_id}.html'.format(post_id=post_id)
             # res = requests.Session()  # set resuest session
