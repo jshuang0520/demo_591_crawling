@@ -1,14 +1,33 @@
 # -*- coding: utf-8 -*-
-from bson.json_util import dumps
+from bson import ObjectId
+# from bson.json_util import dumps
 import inspect
+import json
 import pprint
 import pymongo
 from pymongo import InsertOne, DeleteOne, ReplaceOne
 from pymongo.errors import BulkWriteError
 from src.constants.config_constant import ConfigConstant
 from typing import List
+# from uuid import UUID
 
 pp = pprint.PrettyPrinter(indent=2)
+
+
+class JSONEncoder(json.JSONEncoder):
+    """
+    make ObjectId, UUID json serializable
+    --
+
+    reference
+    https://stackoverflow.com/questions/16586180/typeerror-objectid-is-not-json-serializable
+    """
+    def default(self, o):
+        if isinstance(o, ObjectId):
+            return str(o)
+        # elif isinstance(o, UUID):
+        #     return str(o)
+        return json.JSONEncoder.default(self, o)
 
 
 class MongodbUtility:
@@ -115,12 +134,27 @@ class MongodbUtility:
     #
     ###########################################
 
+    def create_collection(self, conn_db, coll_name):
+        """
+        param: conn_db: db connection
+        param: coll_name: collection name
+        """
+        try:
+            res = conn_db[coll_name]
+            output = {'status': int(1)}
+        except Exception as e:
+            self.logger.error(e)
+            output = {'status': int(-1)}
+        self.logger.info('{func} - status: {status}'.format(func=inspect.getframeinfo(inspect.currentframe()).function,
+                                                            status=output['status']))
+        return output
+
     def __drop_collection(self, conn_db, coll_name):
         """
         truncate collection
 
         param: conn_db: db connection
-        param: coll: collection name
+        param: coll_name: collection name
         """
         try:
             conn_db[coll_name].drop()
@@ -195,14 +229,21 @@ class MongodbUtility:
         param: projection: <dict> projection
         """
         try:
-            if not query_criteria and not projection:
-                res = conn_db[coll_name].find()
+            self.logger.info('query_criteria: {query_criteria}, projection: {projection}'.format(
+                query_criteria=query_criteria, projection=projection))
+            if not query_criteria and not projection:  # read all data in this collection
+                res = conn_db[coll_name].find({})
             elif query_criteria:
                 res = conn_db[coll_name].find(query_criteria)
             else:
                 res = conn_db[coll_name].find(query_criteria, projection)
-            # use bson.json_util to turn bson 'ObjectId' into json, for jsonify api output
-            res = [eval(dumps(r)) for r in res]  # res = [r for r in res] would cause issues in api return
+
+            # better way to make ObjectId, UUID json serializable - https://stackoverflow.com/questions/16586180/typeerror-objectid-is-not-json-serializable
+            res = [json.loads(json.dumps(r, cls=JSONEncoder)) for r in res]
+            # # use bson.json_util to turn bson 'ObjectId' into json, for jsonify api output
+            # res = [eval(dumps(r)) for r in res]  # res = [r for r in res] would cause issues in api return
+
+            self.logger.info('data[0]: {d}; length of data: {l}'.format(d=res[0], l=len(res)))  # print first row
             output = {'status': int(1), 'data': res}
         except Exception as e:
             self.logger.error(e)
@@ -276,9 +317,12 @@ class MongodbUtility:
         """
         try:
             if delete_criteria is None:
-                self.logger.warn('please specify a condition to delete data')
+                self.logger.warning('please specify a condition to delete data')
+            elif delete_criteria == {}:
+                self.logger.warning('deleting all data in this collection...')
+                conn_db[coll_name].delete_many(delete_criteria)
             else:
-                res = conn_db[coll_name].delete_many(delete_criteria)
+                conn_db[coll_name].delete_many(delete_criteria)
             output = {'status': int(1)}
         except Exception as e:
             self.logger.error(e)
