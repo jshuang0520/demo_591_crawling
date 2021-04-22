@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
 import os
+import sys
+sys.path.insert(0, os.path.abspath('..'))
+sys.path.insert(0, os.path.abspath('.'))
 from src.utility.utils import Logger, set_env
 from src.database.mongo.mongodb import MongodbUtility
 
@@ -182,7 +185,7 @@ def main(city):
     rng = range(0, taipei_total_num, 30)
     # rng = range(0, 15, 30)  # TODO: testing size
     print('list(rng):', list(rng))
-    pool = MyPool(4)
+    pool = MyPool(10)
     results = pool.starmap(Crawling(global_logger).craw_layer_1, zip([city]*len(rng), rng, [False]*len(rng)))
     pool.close()
     pool.join()
@@ -208,7 +211,7 @@ def main(city):
     start = time.time()
 
     # multi process
-    pool = MyPool(20)  # TODO - result of trials: pool <=4 to solve Error: 'RecursionError('maximum recursion depth exceeded')'
+    pool = MyPool(50)  # TODO - result of trials: pool <=4 to solve Error: 'RecursionError('maximum recursion depth exceeded')'
     results_2 = pool.map(Crawling(global_logger).craw_layer_2, results_1)  # input layer 1 result
     pool.close()
     pool.join()
@@ -235,6 +238,7 @@ def main(city):
     return results_2
 
 
+global_logger = Logger().get_logger('main crawler')
 dir_path = os.path.dirname(os.path.realpath(__file__))
 global_config = set_env(logger=global_logger,
                         env_file_path=dir_path.split('mains')[0] + 'env_files/dev/.env',
@@ -244,55 +248,73 @@ db_conn = mongodb_client.db_connect(database='test')  # mongodb_client.dflt_conn
 
 # mongodb_client.delete(conn_db=db_conn, coll_name='my_collection', delete_criteria={})
 
-
+global_logger.info('start crawling taipei city')
 taipei_data = main(city='taipei_city')
+import json
+with open('~/py_ds_nas/591_cathay_interview/demo_591_crawling/taipei_city_20210422T232400.json', 'w') as f:
+    json.dump(taipei_data , f)
 # print('type(taipei_data), len(taipei_data):', type(taipei_data), len(taipei_data), taipei_data[0:10], type(taipei_data[0]))
+global_logger.info('end crawling taipei city')
+global_logger.info('start create_collection')
 mongodb_client.create_collection(conn_db=db_conn, coll_name='taipei_city_renting')
+global_logger.info('start create_index')
 mongodb_client.create_index(conn_db=db_conn, coll_name='taipei_city_renting', idx_col_list=['post_id', 'gender_request', 'city', 'phone', 'owner_identity', 'owner_last_name', 'owner_gender'])
 # mongodb_client.create(conn_db=db_conn, coll_name='my_collection', data_to_insert=taipei_data)  # taipei_data is a list of dict
+global_logger.info('start update taipei_city_renting')
 mongodb_client.update(conn_db=db_conn, coll_name='taipei_city_renting', data_to_insert=taipei_data, unique_key='post_id')
+global_logger.info('start read taipei_city_renting')
 mongodb_client.read(conn_db=db_conn, coll_name='taipei_city_renting', query_criteria=None, projection=None)
+global_logger.info('--- done for taipei_city')
 
 
-new_taipei_data = main(city='new_taipei_city')
-# print('type(new_taipei_data), len(new_taipei_data):', type(new_taipei_data), len(new_taipei_data), new_taipei_data[0:10], type(new_taipei_data[0]))
-mongodb_client.create_collection(conn_db=db_conn, coll_name='new_taipei_city_renting')
-mongodb_client.create_index(conn_db=db_conn, coll_name='new_taipei_city_renting', idx_col_list=['post_id', 'gender_request', 'city', 'phone', 'owner_identity', 'owner_last_name', 'owner_gender'])
-# mongodb_client.create(conn_db=db_conn, coll_name='my_collection', data_to_insert=new_taipei_data)  # taipei_data is a list of dict
-mongodb_client.update(conn_db=db_conn, coll_name='new_taipei_city_renting', data_to_insert=new_taipei_data, unique_key='post_id')
-mongodb_client.read(conn_db=db_conn, coll_name='new_taipei_city_renting', query_criteria=None, projection=None)
-
-
-# import os
-# from src.utility.utils import Logger, set_env
-# from src.database.mongo.mongodb import MongodbUtility
-# global_logger = Logger().get_logger('main crawler')
-# dir_path = os.path.dirname(os.path.realpath(__file__))
-# # print("dir_path:", dir_path)
-# global_config = set_env(logger=global_logger,
-#                         env_file_path=dir_path.split('mains')[0] + 'env_files/dev/.env',
-#                         config_folder_name='configs')
-# mongodb_client = MongodbUtility(global_config, global_logger)
-# db_conn = mongodb_client.db_connect(database='test')  # mongodb_client.dflt_conn_db
-# import pymongo
-# client = pymongo.MongoClient(port=27017, host='localhost')
-# res = client.test.taipei_city_renting.find({})
-# print('taipei city data:', [x for x in res])
-#
-#
+# global_logger.info('start crawling new taipei city')
+# new_taipei_data = main(city='new_taipei_city')
 # import json
-# from bson import ObjectId
-# from uuid import UUID
-# class JSONEncoder(json.JSONEncoder):
-#     def default(self, o):
-#         if isinstance(o, ObjectId):
-#             return str(o)
-#         elif isinstance(o, UUID):
-#             return str(o)
-#         return json.JSONEncoder.default(self, o)
+# with open('~/py_ds_nas/591_cathay_interview/demo_591_crawling/new_taipei_city_20210422T232400.json', 'w') as f:
+#     json.dump(new_taipei_data, f)
+# # global_logger.info('type(new_taipei_data), len(new_taipei_data):', type(new_taipei_data), len(new_taipei_data), new_taipei_data[0:10], type(new_taipei_data[0]))
+# global_logger.info('end crawling new taipei city')
+# global_logger.info('start create_collection')
+# mongodb_client.create_collection(conn_db=db_conn, coll_name='new_taipei_city_renting')
+# global_logger.info('start create_index')
+# mongodb_client.create_index(conn_db=db_conn, coll_name='new_taipei_city_renting', idx_col_list=['post_id', 'gender_request', 'city', 'phone', 'owner_identity', 'owner_last_name', 'owner_gender'])
+# # mongodb_client.create(conn_db=db_conn, coll_name='my_collection', data_to_insert=new_taipei_data)  # taipei_data is a list of dict
+# global_logger.info('start update new_taipei_city_renting')
+# mongodb_client.update(conn_db=db_conn, coll_name='new_taipei_city_renting', data_to_insert=new_taipei_data, unique_key='post_id')
+# global_logger.info('start read new_taipei_city_renting')
+# mongodb_client.read(conn_db=db_conn, coll_name='new_taipei_city_renting', query_criteria=None, projection=None)
 #
 #
-# from bson.json_util import dumps
-# res = db_conn['taipei_city_renting'].find({})
-# res = [json.loads(json.dumps(r, cls=JSONEncoder)) for r in res]
-# print('taipei city data:', res)
+# # import os
+# # from src.utility.utils import Logger, set_env
+# # from src.database.mongo.mongodb import MongodbUtility
+# # global_logger = Logger().get_logger('main crawler')
+# # dir_path = os.path.dirname(os.path.realpath(__file__))
+# # # print("dir_path:", dir_path)
+# # global_config = set_env(logger=global_logger,
+# #                         env_file_path=dir_path.split('mains')[0] + 'env_files/dev/.env',
+# #                         config_folder_name='configs')
+# # mongodb_client = MongodbUtility(global_config, global_logger)
+# # db_conn = mongodb_client.db_connect(database='test')  # mongodb_client.dflt_conn_db
+# # import pymongo
+# # client = pymongo.MongoClient(port=27017, host='localhost')
+# # res = client.test.taipei_city_renting.find({})
+# # print('taipei city data:', [x for x in res])
+# #
+# #
+# # import json
+# # from bson import ObjectId
+# # from uuid import UUID
+# # class JSONEncoder(json.JSONEncoder):
+# #     def default(self, o):
+# #         if isinstance(o, ObjectId):
+# #             return str(o)
+# #         elif isinstance(o, UUID):
+# #             return str(o)
+# #         return json.JSONEncoder.default(self, o)
+# #
+# #
+# # from bson.json_util import dumps
+# # res = db_conn['taipei_city_renting'].find({})
+# # res = [json.loads(json.dumps(r, cls=JSONEncoder)) for r in res]
+# # print('taipei city data:', res)
