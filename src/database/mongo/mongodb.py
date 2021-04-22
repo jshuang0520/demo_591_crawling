@@ -264,6 +264,9 @@ class MongodbUtility:
 
         bulk write
         https://pymongo.readthedocs.io/en/stable/examples/bulk.html
+
+        count
+        https://pymongo.readthedocs.io/en/stable/api/pymongo/collection.html
         --
 
         e.g.
@@ -281,13 +284,39 @@ class MongodbUtility:
         except BulkWriteError as bwe:
             print(bwe.details)
         """
-        requests = [
-            ReplaceOne(filter={unique_key: doc[unique_key]}, replacement=doc, upsert=True) for doc in data_to_insert if doc is not None
-        ]  # remove None, or bulk write would be in exception thus no data were inserted
-        try:
-            conn_db[coll_name].bulk_write(requests)
-        except BulkWriteError as bwe:
-            self.logger.error(bwe.details)
+
+        def chunks(lst, n):
+            """
+            Yield successive n-sized chunks from lst.
+            --
+            https://stackoverflow.com/questions/312443/how-do-you-split-a-list-into-evenly-sized-chunks
+            """
+            for i in range(0, len(lst), n):
+                yield lst[i:i + n]
+        n_elements = 1000  # num of elements in a chunck
+        data_to_insert_in_n_chunks = list(chunks(data_to_insert, n_elements))
+
+        for chunk in data_to_insert_in_n_chunks:
+            try:
+                requests = [
+                    ReplaceOne(filter={unique_key: doc[unique_key]}, replacement=doc, upsert=True) for doc in chunk
+                    if doc is not None
+                ]  # remove None, or bulk write would be in exception thus no data were inserted
+                result = conn_db[coll_name].bulk_write(requests)
+                self.logger.info(
+                    '{func} - status: {status}, inserted_cnt: {ins_cnt}, modified_cnt: {mod_cnt}'.format(
+                        func=inspect.getframeinfo(inspect.currentframe()).function,
+                        status=int(1),
+                        ins_cnt=result.inserted_count, mod_cnt=result.modified_count
+                    )
+                )
+            except BulkWriteError as bwe:
+                self.logger.error(
+                    '{func} - status: {status}, error message: {e}'.format(
+                        func=inspect.getframeinfo(inspect.currentframe()).function,
+                        status=int(-1),
+                        e=bwe.details)
+                )
 
     def update_many(self, conn_db, coll_name, update_filter=None, update_action=None):
         """
