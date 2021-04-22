@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from bs4 import BeautifulSoup
 from fake_useragent import UserAgent
+import inspect
 import json
 import multiprocessing
 import pprint
@@ -259,71 +260,119 @@ class Crawling:
         return return_dict
 
     def craw_layer_2(self, basic_data):
+        """
+        in multiprocess,
+        param: basic_data: <dict>
+        """
         try:
-            post_id = basic_data['post_id']
-            self.logger.info('post_id: {}'.format(post_id))
-            # FIXME: Error: 'RecursionError('maximum recursion depth exceeded')'
-            sleep_time = random.randint(1, 3)  # random.uniform(0.5, 3)   random.randint(1, 3)
-            time.sleep(sleep_time)
-            # # post_id = 10789981  # TODO: test case - there's no gender request
-            url = 'https://rent.591.com.tw/rent-detail-{post_id}.html'.format(post_id=post_id)
-            # res = requests.Session()  # set resuest session
-            # user_agent = random.choice(self.user_agent_list)  # choose a user_agent randomly
-            user_agent = UserAgent().random  # randomly select user_agent
-            headers1 = {'User-Agent': user_agent}
-            resp = requests.get(url, headers=headers1)
-            soup = BeautifulSoup(resp.text, 'lxml')
+            # remove empty data
+            if basic_data:
+                post_id = basic_data['post_id']
+                self.logger.info('post_id: {}'.format(post_id))
+                # FIXME: Error: 'RecursionError('maximum recursion depth exceeded')'
+                sleep_time = random.randint(1, 3)  # random.uniform(0.5, 3)   random.randint(1, 3)
+                time.sleep(sleep_time)
+                # # post_id = 10789981  # TODO: test case - there's no gender request
+                url = 'https://rent.591.com.tw/rent-detail-{post_id}.html'.format(post_id=post_id)
+                # res = requests.Session()  # set resuest session
+                # user_agent = random.choice(self.user_agent_list)  # choose a user_agent randomly
+                user_agent = UserAgent().random  # randomly select user_agent
+                headers1 = {'User-Agent': user_agent}
+                resp = requests.get(url, headers=headers1)
+                soup = BeautifulSoup(resp.text, 'lxml')
 
-            # city
-            city_info = soup.find('div', {'id': 'main'}).find('div', {'id': 'propNav'}).findAll('a')[
-                2]  # FIXME: too roughly
-            city_info = city_info.text
-            city_data = {'city': city_info}
+                # city
+                try:
+                    city_info = soup.find('div', {'id': 'main'}).find('div', {'id': 'propNav'}).findAll('a')[
+                        2]  # FIXME: too roughly
+                    city_info = city_info.text
+                    city_data = {'city': city_info}
+                except Exception as e:
+                    city_data = {'city': None}
+                    self.logger.error('{func} - city_data status: {status}, city_data: {out_data}, input_data: {in_data}, error: {err}'.format(
+                            func=inspect.getframeinfo(inspect.currentframe()).function, status=int(-1),
+                            in_data=basic_data, out_data=city_data, err=e))
 
-            # gender request
-            gender_request_info = soup.find('div', {'class': 'detailBox clearfix'}) \
-                .find('div', {'class': 'leftBox'}) \
-                .find('ul', {'class': 'clearfix labelList labelList-1'}) \
-                .findAll('li', {'class': 'clearfix'})
-            gender_request = None
-            for x in gender_request_info:
-                if '性別要求' in x.text:
-                    gender_request = x.text.split('性別要求：')[-1]
-            # print('gender_request:', gender_request)
-            gender_request_data = {'gender_request': gender_request}
+                # gender request
+                try:
+                    gender_request_info = soup.find('div', {'class': 'detailBox clearfix'}) \
+                        .find('div', {'class': 'leftBox'}) \
+                        .find('ul', {'class': 'clearfix labelList labelList-1'}) \
+                        .findAll('li', {'class': 'clearfix'})
+                    gender_request = None
+                    for x in gender_request_info:
+                        if '性別要求' in x.text:
+                            gender_request = x.text.split('性別要求：')[-1]
+                    # print('gender_request:', gender_request)
+                    gender_request_data = {'gender_request': gender_request}
+                except Exception as e:
+                    gender_request_data = {'gender_request': None}
+                    self.logger.error(
+                        '{func} - gender_request_data status: {status}, gender_request_data: {out_data}, input_data: {in_data}, error: {err}'.format(
+                            func=inspect.getframeinfo(inspect.currentframe()).function, status=int(-1),
+                            in_data=basic_data, out_data=gender_request_data, err=e))
 
-            # detailInfo clearfix
-            detail_info = soup.find('div', {'class': 'detailInfo clearfix'}).find('ul', {'class': 'attr'}).findAll(
-                'li')
-            lot_size, story, floor, types, status = None, None, None, None, None
-            for info in detail_info:
-                if '坪數' in info.text:
-                    lot_size = info.text.split(':')[-1].strip()
-                elif '樓層' in info.text:
-                    story = info.text.split(':')[-1].strip()
-                    floor = story.split('/')[0]
-                elif '型態' in info.text:
-                    types = info.text.split(':')[-1].strip()
-                elif '現況' in info.text:
-                    status = info.text.split(':')[-1].strip()
-            # userInfo
-            user_info = soup.find('div', {'class': 'userInfo'})
-            # print('user_info:', user_info.find('div', {'style': 'margin-top: 13px;'}).text)
-            phone = user_info.find('span', {'class': 'dialPhoneNum'})[
-                'data-value']  # FIXME: find an exception- https://rent.591.com.tw/rent-detail-10780065.html
+                # detailInfo clearfix
+                try:
+                    detail_info = soup.find('div', {'class': 'detailInfo clearfix'}).find('ul', {'class': 'attr'}).findAll(
+                        'li')
+                    lot_size, story, floor, types, status = None, None, None, None, None
+                    for info in detail_info:
+                        if '坪數' in info.text:
+                            lot_size = info.text.split(':')[-1].strip()
+                        elif '樓層' in info.text:
+                            story = info.text.split(':')[-1].strip()
+                            floor = story.split('/')[0]
+                        elif '型態' in info.text:
+                            types = info.text.split(':')[-1].strip()
+                        elif '現況' in info.text:
+                            status = info.text.split(':')[-1].strip()
+                    detail_info_data = {'lot_size': lot_size,
+                                        'story': story,
+                                        'floor': floor,
+                                        'types': types,
+                                        'status': status
+                                        }
+                except Exception as e:
+                    detail_info_data = {'lot_size': None,
+                                        'story': None,
+                                        'floor': None,
+                                        'types': None,
+                                        'status': None
+                                        }
+                    self.logger.error('{func} - detail_info_data status: {status}, detail_info_data: {out_data}, input_data: {in_data}, error: {err}'.format(
+                            func=inspect.getframeinfo(inspect.currentframe()).function, status=int(-1),
+                            in_data=basic_data, out_data=detail_info_data, err=e))
+                # userInfo
+                try:
+                    user_info = soup.find('div', {'class': 'userInfo'})
+                    # print('user_info:', user_info.find('div', {'style': 'margin-top: 13px;'}).text)
+                    phone = user_info.find('span', {'class': 'dialPhoneNum'})[
+                        'data-value']  # FIXME: find an exception- https://rent.591.com.tw/rent-detail-10780065.html
+                    phone_data = {'phone': phone}
+                except Exception as e:
+                    phone_data = {'phone': None}
+                    self.logger.error(
+                        '{func} - phone_data status: {status}, phone_data: {out_data}, input_data: {in_data}, error: {err}'.format(
+                            func=inspect.getframeinfo(inspect.currentframe()).function, status=int(-1),
+                            in_data=basic_data, out_data=phone_data, err=e))
 
-            res = {'lot_size': lot_size,
-                   'story': story,
-                   'floor': floor,
-                   'types': types,
-                   'status': status,
-                   'phone': phone,
-                   }
-            data = {**basic_data, **city_data, **res, **gender_request_data}  # merge multiple dictionaries to replace the original dict data
+                # res = {'lot_size': lot_size,
+                #        'story': story,
+                #        'floor': floor,
+                #        'types': types,
+                #        'status': status,
+                #        'phone': phone,
+                #        }
+                data = {**basic_data, **city_data, **detail_info_data, **phone_data, **gender_request_data}  # merge multiple dictionaries to replace the original dict data
+            else:
+                data = None
+                self.logger.warning('{func} - input_data: {in_data}, output_data: {out_data}, error: {err}'.format(
+                    func=inspect.getframeinfo(inspect.currentframe()).function, in_data=basic_data, out_data=data, err=e))
         except Exception as e:
-            self.logger.error(e)
             data = None
-
+            self.logger.error('{func} - status: {status}, input_data: {in_data}, output_data: {out_data}, error: {err}'.format(
+                func=inspect.getframeinfo(inspect.currentframe()).function, status=int(-1), in_data=basic_data, out_data=data, err=e))
         return data
 
     def clean_nick_name(self, nick_name_dict):

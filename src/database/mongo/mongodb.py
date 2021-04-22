@@ -282,8 +282,8 @@ class MongodbUtility:
             print(bwe.details)
         """
         requests = [
-            ReplaceOne(filter={unique_key: doc[unique_key]}, replacement=doc, upsert=True) for doc in data_to_insert
-        ]
+            ReplaceOne(filter={unique_key: doc[unique_key]}, replacement=doc, upsert=True) for doc in data_to_insert if doc is not None
+        ]  # remove None, or bulk write would be in exception thus no data were inserted
         try:
             conn_db[coll_name].bulk_write(requests)
         except BulkWriteError as bwe:
