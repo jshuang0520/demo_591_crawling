@@ -250,9 +250,13 @@ db_conn = mongodb_client.db_connect(database='test')  # mongodb_client.dflt_conn
 
 global_logger.info('start crawling taipei city')
 taipei_data = main(city='taipei_city')
+"""
+time elapsed layer 2: 1520.5253620147705 sec
+"""
 import json
-with open('~/py_ds_nas/591_cathay_interview/demo_591_crawling/taipei_city_20210422T232400.json', 'w') as f:
-    json.dump(taipei_data , f)
+with open('taipei_city_20210422T232400.json', 'w', encoding='utf-8') as f:
+    data = {'data': taipei_data}
+    json.dump(taipei_data, f, ensure_ascii=False)
 # print('type(taipei_data), len(taipei_data):', type(taipei_data), len(taipei_data), taipei_data[0:10], type(taipei_data[0]))
 global_logger.info('end crawling taipei city')
 global_logger.info('start create_collection')
