@@ -250,13 +250,17 @@ class Crawling:
                 return_dict = {'data': data,
                                'total': None,
                                'status': 1}
-                self.logger.debug("return_dict['data'][0]: {}".format(return_dict['data'][0]))
+                # self.logger.debug("return_dict['data'][0]: {}".format(return_dict['data'][0]))
 
         except Exception as e:
             self.logger.error(e)
             return_dict = {'data': {},
                            'total': None,
                            'status': -1}
+            if 'out of range' in str(e):
+                self.logger.warning('you might be blocked by the website.')
+                # self.logger.warning('you might be blocked by the website. system exit')
+                # exit()
         return return_dict
 
     def craw_layer_2(self, basic_data):
