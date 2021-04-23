@@ -42,9 +42,60 @@ db_conn = mongodb_client.db_connect(database='test')  # mongodb_client.dflt_conn
 
 
 from bson.json_util import dumps
-res = db_conn.taipei_city_renting.find({'post_id': 10700982})
+# res = db_conn.taipei_city_renting.find({'post_id': 10700982})
+# print([eval(dumps(r)) for r in res])
+# doc_count = db_conn.taipei_city_renting.count_documents({})
+# print(doc_count)
+# doc_count = db_conn.new_taipei_city_renting.count_documents({})
+# print(doc_count)
+
+
+# # db_conn.new_taipei_city_renting.drop()
+# res = db_conn.new_taipei_city_renting.find({"post_idn": {"$ne" : None}}).limit(2)
+# print([eval(dumps(r)) for r in res])
+
+
+res = db_conn.taipei_city_renting.find({"post_id": {"$ne" : None}}).limit(1)
 print([eval(dumps(r)) for r in res])
-doc_count = db_conn.taipei_city_renting.count_documents({})
-print(doc_count)
-doc_count = db_conn.new_taipei_city_renting.count_documents({})
-print(doc_count)
+"""
+[
+{'_id': {'$oid': '60803fd03d3a69615bf53dae'}, 
+'post_id': 1531998, 
+'nick_name': '代理人 陳先生', 'renter': '陳先生', 'owner_identity': '代理人', 'owner_last_name': '陳', 'owner_gender': '男', 
+'city': '台北市', 
+'lot_size': '7坪', 
+'story': '3F/4F', 'floor': '3F', 
+'types': '公寓', 
+'status': '獨立套房', 
+'phone': '0933-668-596', 
+'gender_request': '女生'}, {'_id': {'$oid': '6080c4683d3a69615bf54572'}
+]
+"""
+print("--")
+res = db_conn.taipei_city_renting.find({"$and": [{"post_id": {'$ne': None}},
+                                                 {"gender_request": {"$regex" : ".*男.*"}},
+                                                 # {"city": {"$eq": "台北市"}}
+                                                 ]
+                                        }
+                                       ).limit(1)
+print([eval(dumps(r)) for r in res])
+
+
+print("--")
+res = db_conn.taipei_city_renting.find({"phone": {"$eq": "0933-668-596"}}).limit(1)
+print([eval(dumps(r)) for r in res])
+
+
+print("--")
+res = db_conn.taipei_city_renting.find({"owner_identity": {"$ne": "屋主"}}).limit(1)
+print([r for r in res])  # eval(dumps(r)) - NameError: name 'null' is not defined
+
+
+print("--")
+res = db_conn.taipei_city_renting.find({"$and": [{"post_id": {'$ne': None}},
+                                                 {"owner_gender": {"$eq": "女"}},
+                                                 {"owner_last_name": {"$eq": "吳"}},
+                                                 ]
+                                        }
+                                       ).limit(1)
+print([eval(dumps(r)) for r in res])
