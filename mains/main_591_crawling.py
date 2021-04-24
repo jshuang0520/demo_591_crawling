@@ -55,7 +55,7 @@ class MainCommand:
         # layer 1
         start_layer_1_ts = time.time()
         rng = range(0, data_total_num, 30)
-        rng = range(0, 15, 30)  # TODO: for testing
+        # rng = range(0, 15, 30)  # FIXME: for testing
         pool = MyPool(pool_layer_1)
         results = pool.starmap(Crawling(self.logger).craw_layer_1, zip([city]*len(rng), rng, [False]*len(rng)))
         pool.close()
@@ -82,7 +82,7 @@ class MainCommand:
         self.logger.info('time elapsed for layer 2: {}'.format(end_layer_2_ts - start_layer_2_ts))
         return results_2
 
-    def db_insert(self, city, pool_layer_1=10, pool_layer_2=50):
+    def db_insert(self, city, pool_layer_1=10, pool_layer_2=50, create_tmp_file=False):
         # mongodb_client.delete(conn_db=db_conn, coll_name='my_collection', delete_criteria={})
 
         self.logger.info('start crawling city: {}'.format(city))
@@ -90,10 +90,11 @@ class MainCommand:
         """
         time elapsed layer 2: 1520.5253620147705 sec
         """
-        unix_ts = int(datetime.now().timestamp())
-        with open('{city}_{ts}.json'.format(city=city, ts=unix_ts), 'w', encoding='utf-8') as f:
-            data = {'data': all_data}
-            json.dump(data, f, ensure_ascii=False)
+        if create_tmp_file:
+            unix_ts = int(datetime.now().timestamp())
+            with open('{city}_{ts}.json'.format(city=city, ts=unix_ts), 'w', encoding='utf-8') as f:
+                data = {'data': all_data}
+                json.dump(data, f, ensure_ascii=False)
         # print('type(all_data), len(all_data):', type(all_data), len(all_data), all_data[0:10], type(all_data[0]))
         self.logger.info('end crawling city: {}'.format(city))
         self.logger.info('start create_collection')
