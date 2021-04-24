@@ -78,7 +78,16 @@ res = db_conn.taipei_city_renting.find({"$and": [{"post_id": {'$ne': None}},
                                                  ]
                                         }
                                        ).limit(1)
-print([eval(dumps(r)) for r in res])
+original = [eval(dumps(r)) for r in res]
+print('original:', original)
+
+# print("-- test projection")
+# res = db_conn.taipei_city_renting.find({"gender_request": {"$regex" : ".*男.*"}}, {"post_id": {'$ne': None}}).limit(1)
+# """
+# Expression $ne takes exactly 2 arguments. 1 were passed in.
+# """
+# test_projection = [eval(dumps(r)) for r in res]
+# print('test_projection:', test_projection)
 
 
 print("--")
