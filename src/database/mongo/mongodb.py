@@ -413,6 +413,7 @@ class ApiQuery(MongodbUtility):
         param: city: Enum(['taipei_city'], ['new_taipei_city'])
         param: gender: Enum(['男', '女'])
         """
+        # list_of_dict = list()
         list_of_dict = self.mongodb_client.read(
             conn_db=self.db_conn, coll_name='{city}_renting'.format(city=city),
             query_criteria={"$and": [{"post_id": {'$ne': None}},
@@ -428,10 +429,10 @@ class ApiQuery(MongodbUtility):
         """
         param: phone: <str>, sample format: '0933-668-596'
         """
+        list_of_dict = list()
         # so our collection naming design is: ends_with '_renting'
         collections = self.mongodb_client.show_collections(
             conn_db=self.mongodb_client.db_connect(self.mongodb_client.dflt_conn_db), must_include='_renting')['data']
-        results = list()
         for coll in collections:
             data = self.mongodb_client.read(
                 conn_db=self.db_conn, coll_name=coll,
@@ -440,10 +441,11 @@ class ApiQuery(MongodbUtility):
                                          # {"city": {"$eq": "台北市"}},
                                          ]
                                 },
-                projection=None)['data']
+                projection=None
+            )['data']
 
             if data:
-                results.extend(data)
+                list_of_dict.extend(data)
             else:
                 pass
 
@@ -457,7 +459,7 @@ class ApiQuery(MongodbUtility):
         #
         # with multiprocessing.Pool(processes=3) as pool:
         #     # zip(conn_db, coll_name, query_criteria, projection)
-        #     results = pool.starmap(self.mongodb_client.read, zip([self.db_conn]*len(collections),
+        #     list_of_dict = pool.starmap(self.mongodb_client.read, zip([self.db_conn]*len(collections),
         #                                                          collections,
         #                                                          [query_criteria]*len(collections),
         #                                                          [projection]*len(collections)
@@ -469,10 +471,48 @@ class ApiQuery(MongodbUtility):
         #     TypeError: can't pickle _thread.lock objects
         #     """
         #
-        # data = [x['data'] for x in results if x['data'] is not None]
+        # data = [x['data'] for x in list_of_dict if x['data'] is not None]
 
-        output = {'status': int(1), 'data': results}
-        return output
+        return list_of_dict
+
+    def query_owner_identity(self, positive_id_lst=None, negative_id_lst=None):
+        """
+        param: city
+        param: owner_identity
+        """
+        list_of_dict = list()
+        if negative_id_lst:
+            # so our collection naming design is: ends_with '_renting'
+            collections = self.mongodb_client.show_collections(
+                conn_db=self.mongodb_client.db_connect(self.mongodb_client.dflt_conn_db), must_include='_renting')['data']
+            for coll in collections:
+                data = self.mongodb_client.read(
+                    conn_db=self.db_conn, coll_name=coll,
+                    query_criteria={"$and": [{"post_id": {'$ne': None}},
+                                             {"owner_identity": {"$nin": negative_id_lst}},
+                                             # {"city": {"$eq": "台北市"}},
+                                             ]
+                                    },
+                    projection=None
+                )['data']
+
+                if data:
+                    list_of_dict.extend(data)
+                else:
+                    pass
+
+        # list_of_dict = list()
+        # if negative_id_lst:
+        #     list_of_dict = self.mongodb_client.read(
+        #         conn_db=self.db_conn, coll_name='{city}_renting'.format(city=city),
+        #         query_criteria={"$and": [{"post_id": {'$ne': None}},
+        #                                  {"owner_identity": {"$nin": negative_id_lst}},
+        #                                  # {"city": {"$eq": "台北市"}},
+        #                                  ]
+        #                         },
+        #         projection=None
+        #     )['data']
+        return list_of_dict
 
 
 # # test main flow

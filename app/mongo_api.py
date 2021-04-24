@@ -133,7 +133,7 @@ class RenterGender(Resource):
     def post(self):
         """
         given city of house, gender of renter,
-        find apratments
+        find apartments
         """
         # check keys in the requested payload
         necessary_keys = {'city', 'gender'}  # a set
@@ -193,7 +193,7 @@ class OwnerPhone(Resource):
     def post(self):
         """
         given city of house, gender of owner,
-        find apratments
+        find apartments
         """
         # check keys in the requested payload
         necessary_keys = {'phone'}  # a set
@@ -208,11 +208,68 @@ class OwnerPhone(Resource):
             end = time.time()
             time_elapsed_api = float("{:.6f}".format(end - start))
 
-            if res['data']:
+            if res:
                 result = {
                     "code": 0,
                     "message": "success",
-                    "data": res['data'],  # [dumps(x) for x in res['data']],
+                    "data": res,  # [dumps(x) for x in res],
+                    "time_elapsed_api": time_elapsed_api,
+                }
+                self.logger.info('time_elapsed_api: {}'.format(time_elapsed_api))
+            else:
+                result = {
+                    "code": -1,
+                    "message": "failed",
+                    "data": None,
+                    "time_elapsed_api": 0,
+                }
+                self.logger.warning('no such data in db!')
+
+            # # The return type must be a string, dict, tuple, Response instance, or WSGI callable - rest api outputs json
+            result = jsonify(result)
+
+            return result
+        else:
+            status_code = 400
+            message_400 = '''{status_code} Bad Request. Please make sure your data payload with columns: {col}'''.format(
+                status_code=status_code, col=necessary_keys)
+            raise InvalidUsage(message_400, status_code=status_code)
+
+
+@ns_owner.route('/identity', strict_slashes=False)
+class OwnerIdentity(Resource):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.logger = Logger().get_logger('api')
+        env_file = './env_files/.env'
+        self.config = set_env(logger=self.logger, env_file_path=env_file, config_folder_name='configs')
+        self.query_handler = ApiQuery(global_config, global_logger)
+
+    @ns_owner.response(200, 'Success')
+    def post(self):
+        """
+        given owner identity (using positive or negative listing),
+        find apartments
+        """
+        # check keys in the requested payload
+        necessary_keys = {'negative_id_lst'}  # a set
+
+        start = time.time()
+        payload = request.json
+
+        if necessary_keys.issubset(payload.keys()):
+            self.logger.info("payload: {payload_type}, {payload}".format(payload_type=type(payload), payload=payload))
+            res = self.query_handler.query_owner_identity(negative_id_lst=payload['negative_id_lst'])
+            # res = self.query_handler.query_owner_phone(phone='0933-668-596')  # FIXME: test
+            end = time.time()
+            time_elapsed_api = float("{:.6f}".format(end - start))
+
+            if res:
+                result = {
+                    "code": 0,
+                    "message": "success",
+                    "data": res,  # [dumps(x) for x in res],
                     "time_elapsed_api": time_elapsed_api,
                 }
                 self.logger.info('time_elapsed_api: {}'.format(time_elapsed_api))
@@ -285,6 +342,14 @@ curl \
 -H "Content-Type: application/json" \
 -d '{"phone": "0905-059-091"}' \
 http://127.0.0.1:30000/api/v1/owner/phone
+
+===
+
+curl \
+-X POST \
+-H "Content-Type: application/json" \
+-d '{"negative_id_lst": ["屋主"]}' \
+http://127.0.0.1:30000/api/v1/owner/identity
 
 
 """
