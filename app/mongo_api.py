@@ -203,7 +203,8 @@ class OwnerPhone(Resource):
 
         if necessary_keys.issubset(payload.keys()):
             self.logger.info("payload: {payload_type}, {payload}".format(payload_type=type(payload), payload=payload))
-            res = self.query_handler.query_owner_phone(phone='0933-668-596')  # FIXME: test
+            res = self.query_handler.query_owner_phone(phone=payload['phone'])
+            # res = self.query_handler.query_owner_phone(phone='0933-668-596')  # FIXME: test
             end = time.time()
             time_elapsed_api = float("{:.6f}".format(end - start))
 
