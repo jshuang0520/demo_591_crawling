@@ -413,15 +413,16 @@ class ApiQuery(MongodbUtility):
         param: city: Enum(['taipei_city'], ['new_taipei_city'])
         param: gender: Enum(['男', '女'])
         """
-        data = self.mongodb_client.read(
+        list_of_dict = self.mongodb_client.read(
             conn_db=self.db_conn, coll_name='{city}_renting'.format(city=city),
             query_criteria={"$and": [{"post_id": {'$ne': None}},
                                      {"gender_request": {"$regex": ".*{gender}.*".format(gender=gender)}},
                                      # {"city": {"$eq": "台北市"}},
                                      ]
                             },
-            projection=None)
-        return data
+            projection=None
+        )['data']
+        return list_of_dict
 
     def query_owner_phone(self, phone):
         """

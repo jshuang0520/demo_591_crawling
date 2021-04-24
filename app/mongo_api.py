@@ -148,11 +148,11 @@ class RenterGender(Resource):
             end = time.time()
             time_elapsed_api = float("{:.6f}".format(end - start))
 
-            if res['data']:
+            if res:
                 result = {
                     "code": 0,
                     "message": "success",
-                    "data": res['data'],  # [dumps(x) for x in res['data']],
+                    "data": res,  # [dumps(x) for x in res['data']],
                     "time_elapsed_api": time_elapsed_api,
                 }
                 self.logger.info('time_elapsed_api: {}'.format(time_elapsed_api))
