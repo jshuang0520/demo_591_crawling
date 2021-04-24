@@ -3,11 +3,14 @@ from bson import ObjectId
 # from bson.json_util import dumps
 import inspect
 import json
+import os
 import pprint
 import pymongo
-from pymongo import InsertOne, DeleteOne, ReplaceOne
+from pymongo import ReplaceOne  # InsertOne, DeleteOne
 from pymongo.errors import BulkWriteError
 from src.constants.config_constant import ConfigConstant
+# from src.utility.utils import Logger, set_env
+import time
 from typing import List
 # from uuid import UUID
 
@@ -48,7 +51,7 @@ class MongodbUtility:
         self.logger = logger
         database = config[ConfigConstant.SETTINGS.value][ConfigConstant.CRAWLER_STORAGE.value]
         self.config = config[ConfigConstant.DATABASE.value][database]
-        self.logger.info('self.config: \n{}'.format(pp.pformat(self.config)))
+        # self.logger.info('self.config: \n{}'.format(pp.pformat(self.config)))  # uncomment this when debugging
         self.host = self.config[ConfigConstant.HOST.value]
         self.port = int(self.config[ConfigConstant.PORT.value])
         self.username = self.config[ConfigConstant.USERNAME.value]
@@ -165,6 +168,19 @@ class MongodbUtility:
         self.logger.info('status: {}'.format(output['status']))
         return output
 
+    def show_collections(self, conn_db, must_include=None):
+        try:
+            coll_names = conn_db.collection_names()
+            if must_include:
+                print('must_include:', must_include)
+                coll_names = [x for x in coll_names if str(must_include) in x]  # include the key words
+            output = {'status': int(1), 'data': coll_names}
+        except Exception as e:
+            self.logger.error(e)
+            output = {'status': int(-1), 'data': None}
+        self.logger.info('status: {}'.format(output['status']))
+        return output
+
     def create_index(self, conn_db, coll_name, idx_col_list):
         """
         create index
@@ -229,25 +245,42 @@ class MongodbUtility:
         param: projection: <dict> projection
         """
         try:
+            db_query_start = time.time()
             self.logger.info('query_criteria: {query_criteria}, projection: {projection}'.format(
                 query_criteria=query_criteria, projection=projection))
             if not query_criteria and not projection:  # read all data in this collection
                 res = conn_db[coll_name].find({})
             elif query_criteria:
-                res = conn_db[coll_name].find(query_criteria)
+                res = conn_db[coll_name].find(query_criteria).limit(100)  # FIXME: test limit
             else:
                 res = conn_db[coll_name].find(query_criteria, projection)
+            db_query_end = time.time()
+            time_elapsed = float("{:.6f}".format(db_query_end - db_query_start))
+            self.logger.info('elapsed time in db query: {}'.format(time_elapsed))
 
+            # Error: 'Object of type ObjectId is not JSON serializable'
             # better way to make ObjectId, UUID json serializable - https://stackoverflow.com/questions/16586180/typeerror-objectid-is-not-json-serializable
-            res = [json.loads(json.dumps(r, cls=JSONEncoder)) for r in res]
+            # res = [json.loads(json.dumps(r, cls=JSONEncoder, ensure_ascii=False).encode('utf8')) for r in res]  # to ensure
+            if res:
+                print(1)
+                print('res:', res)
+                res = [json.loads(json.dumps(r, cls=JSONEncoder)) for r in res]
+            else:
+                print(2)
+                res = json.loads(json.dumps(None, cls=JSONEncoder))
+            # res = res[0]  # FIXME: for test
+
+            # # Error:  name 'null' is not defined
+            # from bson.json_util import dumps
             # # use bson.json_util to turn bson 'ObjectId' into json, for jsonify api output
             # res = [eval(dumps(r)) for r in res]  # res = [r for r in res] would cause issues in api return
 
-            self.logger.info('data[0]: {d}; length of data: {l}'.format(d=res[0], l=len(res)))  # print first row
-            output = {'status': int(1), 'data': res}
+            output = {'status': int(1), 'data': res, 'time_elapsed': time_elapsed}
+            self.logger.info(
+                'output["data"][0]: {d}; length of output["data"]: {l}'.format(d=res[0], l=len(res)))  # print first row
         except Exception as e:
             self.logger.error(e)
-            output = {'status': int(-1), 'data': None}
+            output = {'status': int(-1), 'data': None, 'time_elapsed': int(0)}
         self.logger.info('{func} - status: {status}'.format(func=inspect.getframeinfo(inspect.currentframe()).function,
                                                             status=output['status']))
         return output
@@ -367,6 +400,78 @@ class MongodbUtility:
     # db_conn.my_collection.delete_many(
     #     {'item': 'journal'}
     # )
+
+
+class ApiQuery(MongodbUtility):
+    def __init__(self, config, logger):
+        super().__init__(config, logger)
+        self.mongodb_client = MongodbUtility(config, logger)
+        self.db_conn = self.mongodb_client.db_connect(database=self.mongodb_client.dflt_conn_db)  # default db conn
+
+    def query_renter_gender(self, city, gender):
+        """
+        param: city: Enum(['taipei_city'], ['new_taipei_city'])
+        param: gender: Enum(['男', '女'])
+        """
+        data = self.mongodb_client.read(
+            conn_db=self.db_conn, coll_name='{city}_renting'.format(city=city),
+            query_criteria={"$and": [{"post_id": {'$ne': None}},
+                                     {"gender_request": {"$regex": ".*{gender}.*".format(gender=gender)}},
+                                     # {"city": {"$eq": "台北市"}},
+                                     ]
+                            },
+            projection=None)
+        return data
+
+    def query_owner_phone(self, phone):
+        """
+        param: phone: <str>, sample format: '0933-668-596'
+        """
+        # so our collection naming design is: ends_with '_renting'
+        collections = self.mongodb_client.show_collections(
+            conn_db=self.mongodb_client.db_connect(self.mongodb_client.dflt_conn_db), must_include='_renting')['data']
+        results = list()
+        for coll in collections:
+            data = self.mongodb_client.read(
+                conn_db=self.db_conn, coll_name=coll,
+                query_criteria={"$and": [{"post_id": {'$ne': None}},
+                                         {"phone": {"$eq": str(phone)}},
+                                         # {"city": {"$eq": "台北市"}},
+                                         ]
+                                },
+                projection=None)['data']
+
+            if data:
+                results.extend(data)
+            else:
+                pass
+
+        # # TODO: this part might failed to use multi-porcessing due to passing an db_connection_object
+        # import multiprocessing
+        # query_criteria = {"$and": [{"post_id": {'$ne': None}},
+        #                            {"phone": {"$eq": str(phone)}},
+        #                            ]
+        #                   }
+        # projection = None
+        #
+        # with multiprocessing.Pool(processes=3) as pool:
+        #     # zip(conn_db, coll_name, query_criteria, projection)
+        #     results = pool.starmap(self.mongodb_client.read, zip([self.db_conn]*len(collections),
+        #                                                          collections,
+        #                                                          [query_criteria]*len(collections),
+        #                                                          [projection]*len(collections)
+        #                                                          )
+        #                            )
+        #     pool.close()
+        #     pool.join()
+        #     """
+        #     TypeError: can't pickle _thread.lock objects
+        #     """
+        #
+        # data = [x['data'] for x in results if x['data'] is not None]
+
+        output = {'status': int(1), 'data': results}
+        return output
 
 
 # # test main flow
