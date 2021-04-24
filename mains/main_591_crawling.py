@@ -55,7 +55,8 @@ class MainCommand:
         # layer 1
         start_layer_1_ts = time.time()
         rng = range(0, data_total_num, 30)
-        # rng = range(0, 15, 30)  # FIXME: for testing
+        # rng = range(0, 15, 30)  # FIXME: uncomment me for testing
+        self.logger.info('max of range for crawling: {}'.format(max(rng)+1))
         pool = MyPool(pool_layer_1)
         results = pool.starmap(Crawling(self.logger).craw_layer_1, zip([city]*len(rng), rng, [False]*len(rng)))
         pool.close()
@@ -71,7 +72,7 @@ class MainCommand:
         ########################################################################################################
         # layer 2
         start_layer_2_ts = time.time()
-        pool = MyPool(pool_layer_2)  # TODO - result of trials: pool <=4 to solve Error: 'RecursionError('maximum recursion depth exceeded')'
+        pool = MyPool(pool_layer_2)  # once encountered - result of trials: pool <=4 to solve Error: 'RecursionError('maximum recursion depth exceeded')'
         results_2 = pool.map(Crawling(self.logger).craw_layer_2, results_1)  # input layer 1 result
         pool.close()
         pool.join()
@@ -111,26 +112,6 @@ class MainCommand:
 
 if __name__ == '__main__':
     fire.Fire(MainCommand)
-
-
-#
-#
-# # global_logger.info('start crawling new taipei city')
-# # new_taipei_data = main(city='new_taipei_city')
-# # import json
-# # with open('~/py_ds_nas/591_cathay_interview/demo_591_crawling/new_taipei_city_20210422T232400.json', 'w') as f:
-# #     json.dump(new_taipei_data, f)
-# # # global_logger.info('type(new_taipei_data), len(new_taipei_data):', type(new_taipei_data), len(new_taipei_data), new_taipei_data[0:10], type(new_taipei_data[0]))
-# # global_logger.info('end crawling new taipei city')
-# # global_logger.info('start create_collection')
-# # mongodb_client.create_collection(conn_db=db_conn, coll_name='new_taipei_city_renting')
-# # global_logger.info('start create_index')
-# # mongodb_client.create_index(conn_db=db_conn, coll_name='new_taipei_city_renting', idx_col_list=['post_id', 'gender_request', 'city', 'phone', 'owner_identity', 'owner_last_name', 'owner_gender'])
-# # # mongodb_client.create(conn_db=db_conn, coll_name='my_collection', data_to_insert=new_taipei_data)  # taipei_data is a list of dict
-# # global_logger.info('start update new_taipei_city_renting')
-# # mongodb_client.update(conn_db=db_conn, coll_name='new_taipei_city_renting', data_to_insert=new_taipei_data, unique_key='post_id')
-# # global_logger.info('start read new_taipei_city_renting')
-# # mongodb_client.read(conn_db=db_conn, coll_name='new_taipei_city_renting', query_criteria=None, projection=None)
 
 
 """
