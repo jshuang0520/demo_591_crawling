@@ -514,6 +514,25 @@ class ApiQuery(MongodbUtility):
         #     )['data']
         return list_of_dict
 
+    def query_owner_gender_last_name(self, city, owner_gender, owner_last_name):
+        """
+        param: city: Enum(['taipei_city'], ['new_taipei_city'])
+        param: gender: Enum(['男', '女'])
+        param: last_name
+        """
+        # list_of_dict = list()
+        list_of_dict = self.mongodb_client.read(
+            conn_db=self.db_conn, coll_name='{city}_renting'.format(city=city),
+            query_criteria={"$and": [{"post_id": {'$ne': None}},
+                                     {"owner_gender": {"$eq": str(owner_gender)}},
+                                     {"owner_last_name": {"$eq": str(owner_last_name)}},
+                                     # {"city": {"$eq": "台北市"}},
+                                     ]
+                            },
+            projection=None
+        )['data']
+        return list_of_dict
+
 
 # # test main flow
 # if __name__ == '__main__':

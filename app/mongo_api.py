@@ -293,6 +293,63 @@ class OwnerIdentity(Resource):
             raise InvalidUsage(message_400, status_code=status_code)
 
 
+@ns_owner.route('/gender/last-name', strict_slashes=False)
+class OwnerIdentity(Resource):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.logger = Logger().get_logger('api')
+        env_file = './env_files/.env'
+        self.config = set_env(logger=self.logger, env_file_path=env_file, config_folder_name='configs')
+        self.query_handler = ApiQuery(global_config, global_logger)
+
+    @ns_owner.response(200, 'Success')
+    def post(self):
+        """
+        given owner identity (using positive or negative listing),
+        find apartments
+        """
+        # check keys in the requested payload
+        necessary_keys = {'city', 'owner_gender', 'owner_last_name'}  # a set
+
+        start = time.time()
+        payload = request.json
+
+        if necessary_keys.issubset(payload.keys()):
+            self.logger.info("payload: {payload_type}, {payload}".format(payload_type=type(payload), payload=payload))
+            res = self.query_handler.query_owner_gender_last_name(payload['city'], payload['owner_gender'], payload['owner_last_name'])
+            # res = self.query_handler.query_owner_gender_last_name('new_taipei_city', '男', '楊')  # FIXME: test
+            end = time.time()
+            time_elapsed_api = float("{:.6f}".format(end - start))
+
+            if res:
+                result = {
+                    "code": 0,
+                    "message": "success",
+                    "data": res,  # [dumps(x) for x in res],
+                    "time_elapsed_api": time_elapsed_api,
+                }
+                self.logger.info('time_elapsed_api: {}'.format(time_elapsed_api))
+            else:
+                result = {
+                    "code": -1,
+                    "message": "failed",
+                    "data": None,
+                    "time_elapsed_api": 0,
+                }
+                self.logger.warning('no such data in db!')
+
+            # # The return type must be a string, dict, tuple, Response instance, or WSGI callable - rest api outputs json
+            result = jsonify(result)
+
+            return result
+        else:
+            status_code = 400
+            message_400 = '''{status_code} Bad Request. Please make sure your data payload with columns: {col}'''.format(
+                status_code=status_code, col=necessary_keys)
+            raise InvalidUsage(message_400, status_code=status_code)
+
+
 if __name__ == '__main__':
     server_port = '30000'  # FIXME: it should be port 30000
 
@@ -351,5 +408,12 @@ curl \
 -d '{"negative_id_lst": ["屋主"]}' \
 http://127.0.0.1:30000/api/v1/owner/identity
 
+===
+
+curl \
+-X POST \
+-H "Content-Type: application/json" \
+-d '{"city": "new_taipei_city", "owner_gender": "男", "owner_last_name": "楊"}' \
+http://127.0.0.1:30000/api/v1/owner/gender/last-name
 
 """
