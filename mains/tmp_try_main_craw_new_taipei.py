@@ -271,7 +271,7 @@ db_conn = mongodb_client.db_connect(database='test')  # mongodb_client.dflt_conn
 global_logger.info('start crawling new taipei city')
 new_taipei_data = main(city='new_taipei_city')
 import json
-with open('new_taipei_city_20210422T075800.json', 'w', encoding='utf-8') as f:
+with open('new_taipei_city_20210423T190600.json', 'w', encoding='utf-8') as f:
     data = {'data': new_taipei_data}
     json.dump(new_taipei_data, f, ensure_ascii=False)
 # global_logger.info('type(new_taipei_data), len(new_taipei_data):', type(new_taipei_data), len(new_taipei_data), new_taipei_data[0:10], type(new_taipei_data[0]))

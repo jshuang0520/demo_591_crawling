@@ -1,5 +1,6 @@
 bs4==0.0.1
 fake-useragent==0.1.11
+fire==0.4.0
 Flask==1.1.2
 flask-restplus==0.13.0
 jupyter==1.0.0
