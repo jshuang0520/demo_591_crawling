@@ -22,7 +22,7 @@ app_healthcheck = Flask(__name__)
 app_healthcheck.config['JSON_AS_ASCII'] = False
 version = 'v1'
 repo_tag = 'latest'
-server_url = '<server_url>'
+server_url = '<your-server-host:port>'
 
 # blueprint = Blueprint(version, __name__, url_prefix='/api/{version}'.format(version=version))  # urls must start with a leading slash, and don't end with one
 
@@ -132,8 +132,7 @@ class RenterGender(Resource):
     @ns_renter.response(200, 'Success')
     def post(self):
         """
-        given city of house, gender of renter,
-        find apartments
+        given city of house and renter's gender request, return apartments
         """
         # check keys in the requested payload
         necessary_keys = {'city', 'gender'}  # a set
@@ -192,8 +191,7 @@ class OwnerPhone(Resource):
     @ns_owner.response(200, 'Success')
     def post(self):
         """
-        given city of house, gender of owner,
-        find apartments
+        given owner's phone number, return apartments
         """
         # check keys in the requested payload
         necessary_keys = {'phone'}  # a set
@@ -249,8 +247,7 @@ class OwnerIdentity(Resource):
     @ns_owner.response(200, 'Success')
     def post(self):
         """
-        given owner identity (using positive or negative listing),
-        find apartments
+        given owner's identity (using positive or negative listing), return apartments
         """
         # check keys in the requested payload
         necessary_keys = {'negative_id_lst'}  # a set
@@ -294,7 +291,7 @@ class OwnerIdentity(Resource):
 
 
 @ns_owner.route('/gender/last-name', strict_slashes=False)
-class OwnerIdentity(Resource):
+class OwnerGenderLastname(Resource):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -306,8 +303,7 @@ class OwnerIdentity(Resource):
     @ns_owner.response(200, 'Success')
     def post(self):
         """
-        given owner identity (using positive or negative listing),
-        find apartments
+        given city, owner's gender and last name, return apartments
         """
         # check keys in the requested payload
         necessary_keys = {'city', 'owner_gender', 'owner_last_name'}  # a set
@@ -362,58 +358,45 @@ if __name__ == '__main__':
 Sample request payload
 
 
-api_1. (local query, with level 1, 2, 3, 4)
-
-curl \
--X POST \
--H "Content-Type: application/json" \
--d '{"coordinates": {"latitude":"24.2386","longitude":"120.855"}, "level":"1", "offset":"0", "limit":"100"}' \
-http://127.0.0.1:30000/api/v1/living-area/scooters/
-
 ===
 
 api health check.
 
-curl -d '{"offset":"1", "limit":"100"}' -H "Content-Type: application/json" -X GET http://127.0.0.1:30000/healthcheck/
-
-===
-
 curl \
--X POST \
 -H "Content-Type: application/json" \
--d '{"owner": "屋主 黃先生", "gender":"男"}' \
-http://127.0.0.1:30000/api/v1/591-housing/renter/
+-X GET \
+http://127.0.0.1:30000/healthcheck/
 
-===
+======================================================
 
 curl \
--X POST \
 -H "Content-Type: application/json" \
 -d '{"city": "taipei_city", "gender":"男"}' \
+-X POST \
 http://127.0.0.1:30000/api/v1/renter/gender
 
 ===
 
 curl \
--X POST \
 -H "Content-Type: application/json" \
 -d '{"phone": "0905-059-091"}' \
+-X POST \
 http://127.0.0.1:30000/api/v1/owner/phone
 
 ===
 
 curl \
--X POST \
 -H "Content-Type: application/json" \
 -d '{"negative_id_lst": ["屋主"]}' \
+-X POST \
 http://127.0.0.1:30000/api/v1/owner/identity
 
 ===
 
 curl \
--X POST \
 -H "Content-Type: application/json" \
 -d '{"city": "new_taipei_city", "owner_gender": "男", "owner_last_name": "楊"}' \
+-X POST \
 http://127.0.0.1:30000/api/v1/owner/gender/last-name
 
 """
