@@ -33,9 +33,10 @@ if __name__ == '__main__':
     ans_b = df_filter_b
     ans_b['交易筆棟數_車位'] = ans_b['交易筆棟數'].apply(lambda x: int(x.split("車位")[1]))
     ans_b = ans_b.astype({"總價元": "int", "車位移轉總面積(平方公尺)": 'float', "車位總價元": 'int', '交易筆棟數_車位': 'int'})
-    ans_b = ans_b[(ans_b['交易筆棟數_車位'] > 0) &
-                  (ans_b['車位移轉總面積(平方公尺)'] > 0) &
-                  (ans_b['車位總價元'] > 0)]
+    ans_b = ans_b[(ans_b['交易筆棟數_車位'] > 0) & (ans_b['交易筆棟數_車位'].notnull()) &
+                  (ans_b['車位移轉總面積(平方公尺)'] > 0) & (ans_b['車位移轉總面積(平方公尺)'].notnull()) &
+                  (ans_b['車位總價元'] > 0) & (ans_b['車位總價元'].notnull())
+    ]
 
     print('ans_b:', ans_b)
     print('ans_b.shape:', ans_b.shape)
@@ -59,4 +60,9 @@ if __name__ == '__main__':
                                     '平均車位總價元': [parking_space_mean_dollars]})
 
     # output answer file
-    df_filter_b_ans.to_csv('../answers/filter_b.csv', index=False)
+    df_filter_b_ans.to_csv('../answers/filter_b_2.csv', index=False)
+
+    # validation
+    df_1 = pd.read_csv('../answers/filter_b.csv')
+    df_2 = pd.read_csv('../answers/filter_b_2.csv')
+    print('df_1 == df_2:', df_1 == df_2)
