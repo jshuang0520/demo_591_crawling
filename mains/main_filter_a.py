@@ -29,8 +29,8 @@ if __name__ == '__main__':
     df_filter_a = df_filter_a[(df_filter_a['主要用途'].str.contains("住家用", na=False)) &
                               (df_filter_a['建物型態'].str.contains("住宅大樓", na=False))
                               ]
-    print("sorted(list(set(df_filter_a['總樓層數']))):", sorted(list(set(df_filter_a['總樓層數']))))
-    print(df_filter_a.head(3))
+    # print("sorted(list(set(df_filter_a['總樓層數']))):", sorted(list(set(df_filter_a['總樓層數']))))
+    # print(df_filter_a.head(3))
 
     """
     ![img1](https://upload-images.jianshu.io/upload_images/256855-312b19ff4fcaae34.png)
@@ -51,6 +51,14 @@ if __name__ == '__main__':
                                 '十': 10,
                                 '百': 100, '千': 1000, '萬': 10000, '億': 100000000}
 
+    def simple_case_ch_char_to_int(han_char):
+        total_sum = 0
+        power = len(han_char) - 1  # 2
+        for char in han_char:
+            total_sum += common_used_numerals_tmp[char] * (10 ** power)
+            power -= 1
+        return total_sum
+
 
     def ch_char_to_int(uchar):
         """
@@ -58,12 +66,12 @@ if __name__ == '__main__':
         we do a mapping from Chinese character to digital integer
 
         """
-        print("===***=== original input:", uchar)  # e.g. '一百零一層'
+        # print("===***=== original input:", uchar)  # e.g. '一百零一層'
 
         if '層' in uchar:
             uchar = uchar.split('層')[0]
 
-        # for the exception case: 一零一層 (there's no '百'); 一三一層
+        # for the exception case: 一零一層 (there's no '百'); 一二一層
         if (len(uchar) == 3) and ('零' in uchar):
             if uchar.index('零') == 1:
                 in_series = uchar.split('零')
@@ -71,7 +79,9 @@ if __name__ == '__main__':
                 floor_1 = common_used_numerals_tmp[in_series[1]]
                 total_sum = 100 * floor_100 + floor_1
             else:
-                total_sum = 0  # FIXME: 一三一層
+                total_sum = simple_case_ch_char_to_int(uchar)
+        elif (len(uchar) == 3) and ('十' not in uchar):  # for: 一二一層 here, and exclude 九十一層
+            total_sum = simple_case_ch_char_to_int(uchar)
 
         # for the exception case: 二十層
         elif (len(uchar) == 2) and (uchar.startswith('十')):
@@ -89,7 +99,7 @@ if __name__ == '__main__':
                 # turn characters into integers in Decimal(十進位)
                 int_series = char.replace('百', '100').replace('十', '10')
                 # print("level 1 int_series:", int_series)
-                int_series = re.split(r'(\d{1, })', int_series)
+                int_series = re.split(r'(\d+)', int_series)
                 int_series.append("")
                 # print("int_series:", int_series)
                 # to combine chinese with decimal e.g. 100, 10, 1
@@ -102,7 +112,7 @@ if __name__ == '__main__':
                 for idx2, char2 in enumerate(char_in_decimal):
                     char2 = re.sub('零', '', char2) if char2 != '零' else char2
                     # print("--level 2: 'idx2, char2' = {}, {}".format(idx2, char2))
-                    temp = common_used_numerals_tmp[char2[0]]*int(char2[1:]) if len(char2) > 1 \
+                    temp = common_used_numerals_tmp[char2[0]] * int(char2[1:]) if len(char2) > 1 \
                         else common_used_numerals_tmp[char2[0]]
                     num += temp
                     # print("transformed part sum %s"%str(num))
@@ -123,6 +133,8 @@ if __name__ == '__main__':
     test("三百五十四層")
     test("二十層")
     test("十二層")
+    test("一五零層")
+    test("一二一層")
 
     test_list = sorted(list(set(df_filter_a['總樓層數'])))
     for x in test_list:
@@ -132,20 +144,25 @@ if __name__ == '__main__':
     df_filter_a = df_filter_a[df_filter_a['總樓層數_int'] >= 13]
     print(df_filter_a, df_filter_a.shape, sorted(list(set(df_filter_a['總樓層數']))))
 
+    # output file
+    df_filter_a.to_csv('../answers/filter_a_2.csv', index=False)
+
+    # validation
+    df_1 = pd.read_csv('../answers/filter_a.csv')
+    df_2 = pd.read_csv('../answers/filter_a_2.csv')
+    print('df_1 == df_2:', df_1 == df_2)
+
     """ we can accelerate the process through using swifter
     swifter
     --
     
-    df.groupby(['scooter_guid','user_guid'])[['exchange_time']].swifter.apply(lambda g: g.values.tolist()).to_dict()
+    df.groupby(['columns_1','column_2'])[['column_3']].swifter.apply(lambda g: g.values.tolist()).to_dict()
     --
 
-    gb = input_dataframe.groupby([col_scooter_guid])
-    self.logger.info('fitting using swifter and apply')
-    splitted_dfs = [self.make_interval_time_column(gb.get_group(x), col_exchange_time).swifter.progress_bar(False).apply(
-        lambda row: tag_intensive_swap_logs(row["time_interval"],
-                                            int(self.config[ConfigConstant.ETL.value][
-                                                    ConfigConstant.PARAMETERS.value][
-                                                    ConfigConstant.INTERVAL_TO_FILTER_INTENSIVE_SWAP_IN_SEC.value])),
+    gb = input_dataframe.groupby(['columns_1'])
+    self.logger.info('fitting using swifter.apply')
+    splitted_dfs = [my_function_1(gb.get_group(x), 'column_3').swifter.progress_bar(False).apply(
+        lambda row: my_function_2(row['column_4'], my_constant),
         axis=1)
         for x in gb.groups]
     series = pd.concat(splitted_dfs, axis=0)  # concat vertically
@@ -153,8 +170,8 @@ if __name__ == '__main__':
     input_dataframe = input_dataframe.loc[index_to_keep].reset_index(drop=True)
     --
 
-    models = pd_activity_log.swifter.progress_bar(False).apply(
+    models = df_user_activity.swifter.progress_bar(False).apply(
             fit_model, model_creator=get_model_creator(fit_method),
-            prepare_return_data=self.prepare_return_data, axis=1, **kwargs)
+            returned_data_preparation=return_data_prepared, axis=1, **kwargs)
 
     """
