@@ -24,6 +24,8 @@ if __name__ == '__main__':
     pd_list = [df_a, df_b, df_e, df_f, df_h]  # List of your dataframes
     df_all = pd.concat(pd_list, axis=0)  # concatenate along {0/’index’, 1/’columns’}
     print("df_all.shape:", df_all.shape)
+    df_all = df_all.loc[df_all['鄉鎮市區'] != 'The villages and towns urban district', :]
+    print("df_all.shape:", df_all.shape)
 
     df_filter_a = df_all
     df_filter_a = df_filter_a[(df_filter_a['主要用途'].str.contains("住家用", na=False)) &
@@ -144,7 +146,7 @@ if __name__ == '__main__':
     df_filter_a = df_filter_a[df_filter_a['總樓層數_int'] >= 13]
     print(df_filter_a, df_filter_a.shape, sorted(list(set(df_filter_a['總樓層數']))))
 
-    # output file
+    # output answer file
     df_filter_a.to_csv('../answers/filter_a_2.csv', index=False)
 
     # validation
