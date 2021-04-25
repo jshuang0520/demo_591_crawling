@@ -1,13 +1,12 @@
 # -*- coding: utf-8 -*-
+from dotenv import load_dotenv
 import logging
-import sys
 import os
-from src.constants.utils_const import LogFormatConst, ConfigFileTypeConst
 import sys
+from src import SRC_PARENT_FOLDER
+from src.constants.utils_const import LogFormatConst, ConfigFileTypeConst
 import time
 import yaml
-from dotenv import load_dotenv
-from src import SRC_PARENT_FOLDER
 
 
 class Logger:
@@ -142,9 +141,6 @@ def chunks(lst, n):
         yield lst[i:i + n]
 
 
-
-
-
 def remove_options(parser, arg):
     for action in parser._actions:
         if (vars(action)['option_strings']
@@ -177,6 +173,12 @@ def flatten(s):
     return s[:1] + flatten(s[1:])
 
 
+# def hashid_encode_to_str(hash_id, salt, min_length):
+#     hashids = Hashids(salt=salt, min_length=min_length)
+#     result = hashids.encode(hash_id)  # it's a tuple, e.g. (904708,)
+#     return result
+#
+#
 # def hashid_to_int(hash_id, salt, min_length):
 #     hashids = Hashids(salt=salt, min_length=min_length)
 #     result = hashids.decode(hash_id)  # it's a tuple, e.g. (904708,)
@@ -184,10 +186,4 @@ def flatten(s):
 #         result = int(result[0])
 #     else:
 #         result = None
-#     return result
-#
-#
-# def hashid_encode_to_str(hash_id, salt, min_length):
-#     hashids = Hashids(salt=salt, min_length=min_length)
-#     result = hashids.encode(hash_id)  # it's a tuple, e.g. (904708,)
 #     return result
