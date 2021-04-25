@@ -262,11 +262,8 @@ class MongodbUtility:
             # better way to make ObjectId, UUID json serializable - https://stackoverflow.com/questions/16586180/typeerror-objectid-is-not-json-serializable
             # res = [json.loads(json.dumps(r, cls=JSONEncoder, ensure_ascii=False).encode('utf8')) for r in res]  # to ensure
             if res:
-                print(1)
-                print('res:', res)
                 res = [json.loads(json.dumps(r, cls=JSONEncoder)) for r in res]
             else:
-                print(2)
                 res = json.loads(json.dumps(None, cls=JSONEncoder))
             # res = res[0]  # FIXME: for test
 
