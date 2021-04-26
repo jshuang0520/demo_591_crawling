@@ -1,5 +1,9 @@
 # -*- coding: utf-8 -*-
+import os
 import pandas as pd
+import sys
+sys.path.insert(0, os.path.abspath('..'))
+sys.path.insert(0, os.path.abspath('.'))
 from src.local.etl_util import Extract
 
 
@@ -146,13 +150,13 @@ if __name__ == '__main__':
     df_filter_a = df_filter_a[df_filter_a['總樓層數_int'] >= 13]
     print(df_filter_a, df_filter_a.shape, sorted(list(set(df_filter_a['總樓層數']))))
 
-    # output answer file
-    df_filter_a.to_csv('../answers/filter_a_2.csv', index=False)
-
-    # validation
-    df_1 = pd.read_csv('../answers/filter_a.csv')
-    df_2 = pd.read_csv('../answers/filter_a_2.csv')
-    print('df_1 == df_2:', df_1 == df_2)
+    # # output answer file
+    # df_filter_a.to_csv('../answers/filter_a_2.csv', index=False)
+    #
+    # # validation
+    # df_1 = pd.read_csv('../answers/filter_a.csv')
+    # df_2 = pd.read_csv('../answers/filter_a_2.csv')
+    # print('df_1 == df_2:', df_1 == df_2)
 
     """ we can accelerate the process through using swifter
     swifter

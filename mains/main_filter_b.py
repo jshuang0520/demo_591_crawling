@@ -1,5 +1,9 @@
 # -*- coding: utf-8 -*-
+import os
 import pandas as pd
+import sys
+sys.path.insert(0, os.path.abspath('..'))
+sys.path.insert(0, os.path.abspath('.'))
 from src.local.etl_util import Extract
 
 """
@@ -59,10 +63,10 @@ if __name__ == '__main__':
                                     '總車位數(透過交易筆棟數)': [total_parking_spaces],
                                     '平均車位總價元': [parking_space_mean_dollars]})
 
-    # output answer file
-    df_filter_b_ans.to_csv('../answers/filter_b_2.csv', index=False)
-
-    # validation
-    df_1 = pd.read_csv('../answers/filter_b.csv')
-    df_2 = pd.read_csv('../answers/filter_b_2.csv')
-    print('df_1 == df_2:', df_1 == df_2)
+    # # output answer file
+    # df_filter_b_ans.to_csv('../answers/filter_b_2.csv', index=False)
+    #
+    # # validation
+    # df_1 = pd.read_csv('../answers/filter_b.csv')
+    # df_2 = pd.read_csv('../answers/filter_b_2.csv')
+    # print('df_1 == df_2:', df_1 == df_2)
